@@ -1,0 +1,2 @@
+centers:[(25, 25)]
+lengths:[5]
