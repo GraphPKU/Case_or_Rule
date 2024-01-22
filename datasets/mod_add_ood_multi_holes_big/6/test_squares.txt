@@ -1,2 +1,0 @@
-centers:[(139, 106)]
-lengths:[19]

@@ -1,3 +1,4 @@
+import os
 import torch
 from transformers.models.gpt2 import GPT2Config, GPT2LMHeadModel, GPT2Tokenizer
 import transformers
@@ -7,36 +8,31 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import time
 import re
-import os
 
-cot = True
-task = "add_ood"
-number = "a100_b100_3hole"
-model_name = "gpt2-medium"
+
+cot = False
+task = "addition"
+title = "1hole_(50, 50)_8_289_0-100_cot"
+model_name = "gpt2"
+device = torch.device("cuda:2")
+print(f"running {task} - {title}...")
 
 save_model_path = f"save_model_{model_name}"
 log_step = 200
-
 num_epoch = 100
 save_epoch = num_epoch / 5
 batchsize = 30
 lr = 1e-4
 weight_decay= 0
-random_seed = 202311159394
+random_seed = 42
 torch.manual_seed(random_seed)
 import random
 random.seed(random_seed)
-device = torch.device("cuda:2")
+
 load_checkpoint = None
 # tensorboard writer
 timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-try:
-    if cot:
-        writer = SummaryWriter(log_dir='log/{}_{}_{}_cot_{}'.format(model_name, task, number, timestamp))
-    else:
-        writer = SummaryWriter(log_dir='log/{}_{}_{}_{}'.format(model_name, task, number, timestamp))
-except:
-    writer = SummaryWriter(log_dir='log/{}_{}_{}'.format(model_name, task, timestamp))
+writer = SummaryWriter(log_dir='log/{}_{}_{}_{}'.format(model_name, task, title, timestamp))
 
 # load pretrain model
 print(f"loading pretrained model: {model_name}...")
@@ -45,14 +41,16 @@ model = GPT2LMHeadModel.from_pretrained(f"pretrained_models/{model_name}")
 tokenizer = GPT2Tokenizer.from_pretrained(f"pretrained_models/{model_name}")
 print("done")
 # model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf",torch_dtype=torch.bfloat16, device_map="auto")
-if cot:
-    train_dataset = GPT2Dataset(file_path='datasets/add_ood/{}/train_cot.json'.format(number), max_length=50)
-    valid_dataset = TestDataset(file_path='datasets/add_ood/{}/test_cot.json'.format(number))
-    test_dataset = TestDataset(file_path='datasets/add_ood/{}/test_cot.json'.format(number))
+if task == "mod_addition" and "cot" in title:
+    l = 100
+elif task == "addition_code":
+    l = 800
 else:
-    train_dataset = GPT2Dataset(file_path='datasets/add_ood/{}/train.json'.format(number), max_length=50)
-    valid_dataset = TestDataset(file_path='datasets/add_ood/{}/test.json'.format(number))
-    test_dataset = TestDataset(file_path='datasets/add_ood/{}/test.json'.format(number))
+    l = 50
+print(f"setting max length to {l}")
+train_dataset = GPT2Dataset(file_path='datasets/{}/{}/train.json'.format(task,title), max_length=l)
+valid_dataset = TestDataset(file_path='datasets/{}/{}/test.json'.format(task,title))
+test_dataset = TestDataset(file_path='datasets/{}/{}/test.json'.format(task,title))
 
 # train_dataset = GPT2Dataset(file_path='datasets/mod_add/train.json', max_length=50)
 # valid_dataset = TestDataset(file_path='datasets/mod_add/test.json')
@@ -68,8 +66,23 @@ lr_scheduler = transformers.get_cosine_schedule_with_warmup(optimizer=optimizer,
 
 progress_bar = tqdm(range(num_training_steps))
 
-def extract_answer(s: str):
-    return re.findall(r'[0-9]+\.?[0-9]*', s)
+# def extract_answer(s: str):
+#     return re.findall(r'[0-9]+\.?[0-9]*', s)
+
+def extract_answer(s: str, mode=task):
+    if mode in ["addition", "mod_addition", "base_addition", "linear_regression"]:
+        return re.findall(r'[0-9]+\.?[0-9]*', s)[-1]
+
+    elif mode in ["chickens_and_rabbits"]:
+        return re.findall(r'[0-9]+\.?[0-9]*', s)[-2:]
+
+    elif mode in ["addition_code"]:
+        try:
+            l = eval(re.findall(r'\[.+\]', s)[-1])
+            return l
+        except:
+            print(s)
+            return None
 
 def valid_and_test(model, valid_dataset, test_dataset, device, step):
     with torch.no_grad():
@@ -77,8 +90,8 @@ def valid_and_test(model, valid_dataset, test_dataset, device, step):
         valid_correct = 0
         ctr = 0
         for valid_question, valid_answer in tqdm(valid_dataset):
-            valid_answer = extract_answer(valid_answer)
-            outputs = model.generate(valid_question.to(device), max_length=50, num_beams=1, do_sample=False, pad_token_id=50257) # no padding, greedy decoding
+            valid_answer = extract_answer(str(valid_answer))
+            outputs = model.generate(valid_question.to(device), max_length=l, num_beams=1, do_sample=False, pad_token_id=50257) # no padding, greedy decoding
             generated_answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
             # tqdm.write('-'*40)
             # tqdm.write(generated_answer)
@@ -125,27 +138,20 @@ for epoch in range(num_epoch):
 
         writer.add_scalar('loss', loss.item(), progress_bar.n)
         writer.add_scalar('lr', lr_scheduler.get_last_lr()[0], progress_bar.n)
-        if progress_bar.n % 2000 == 0:
+        if progress_bar.n % 600 == 0:
             valid_and_test(model, valid_dataset, test_dataset, device, step=progress_bar.n)
         if step % log_step == 0:
             tqdm.write('epoch {}, step {}, loss {}, lr: {}'.format(epoch, progress_bar.n, loss.item(), lr_scheduler.get_last_lr()[0]))
         step += 1
     # save_checkpoint
     # torch.save(model.state_dict(), 'model_epoch_{}.pt'.format(epoch))
-    if epoch % save_epoch == 0:
-        if "mod_add_ood_multi_holes" in task or "add_ood" in task:
-            if cot:
-                GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, number + "_cot", f"model_{epoch}"))
-            else:
-                GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, number, f"model_{epoch}"))
-        else:
-            GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, f"model_{epoch}"))
+    # if epoch % save_epoch == 0:
+    #     if cot:
+    #         GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title + "_cot", f"model_{epoch}"))
+    #     else:
+    #         GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title, f"model_{epoch}"))
 
-if "mod_add_ood_multi_holes" in task or "add_ood" in task:
-    if cot:
-        GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, number + "_cot", f"model_{epoch}"))
-    else:
-        GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, number, f"model_{epoch}"))
-
+if cot:
+    GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title + "_cot", f"model_{epoch}"))
 else:
-    GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, f"model_{epoch}"))
+    GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title, f"model_{epoch}"))
