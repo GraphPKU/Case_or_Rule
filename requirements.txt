@@ -1,0 +1,8 @@
+interval==1.0.0
+matplotlib==3.8.2
+numpy==1.26.4
+pandas==2.2.0
+seaborn==0.13.2
+torch==2.1.2+cu118
+tqdm==4.63.0
+transformers==4.37.0
