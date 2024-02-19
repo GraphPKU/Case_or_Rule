@@ -10,9 +10,5 @@ To replicate our main experiments of Leaving-Square-Out, you need to download th
 
 We provide the datasets for our main experiments in `.\datasets`. In each dataset, we provide a figure showing the train-test split `data_split.png`.
 
-## checkpoints
-
-Due to the space limit, we are unable to provide our checkpoints here. We promise to provide them later in the github.
-
 ## Llama
 We adopt the FastChat Framework to finetune Llama-7B in `./llama`.
