@@ -1,0 +1,32 @@
+PATH_TO_DEEPSPEED_CONFIG=playground/deepspeed_config_s2.json
+deepspeed fastchat/train/train_lora.py \
+    --pre_process None \
+    --model_name_or_path MODEL_PATH  \
+    --lora_r 8 \
+    --lora_alpha 16 \
+    --lora_dropout 0.05 \
+    --data_path $DATA_PATH \
+    --output_dir OUTPUT_DIR \
+    --num_train_epochs 1 \
+    --fp16 True \
+    --per_device_train_batch_size 1 \
+    --per_device_eval_batch_size 2 \
+    --gradient_accumulation_steps 1 \
+    --evaluation_strategy "steps" \
+    --eval_steps 1000  \
+    --eval_data_path $TEST_DATA_PATH \
+    --save_strategy "steps" \
+    --save_steps 625 \
+    --save_total_limit 5 \
+    --learning_rate 2e-5 \
+    --weight_decay 0. \
+    --warmup_ratio 0.03 \
+    --lr_scheduler_type "cosine" \
+    --logging_strategy "steps" \
+    --logging_steps 1 \
+    --tf32 True \
+    --model_max_length 4096 \
+    --q_lora False \
+    --deepspeed $PATH_TO_DEEPSPEED_CONFIG \
+    --gradient_checkpointing True \
+    --flash_attn True
