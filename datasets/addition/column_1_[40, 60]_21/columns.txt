@@ -1,2 +1,0 @@
-columns:[74]
-row_range:[40, 60]
