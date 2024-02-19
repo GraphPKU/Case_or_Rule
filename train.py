@@ -10,11 +10,11 @@ import time
 import re
 
 
-cot = False
+
 task = "addition"
-title = "1hole_(50, 50)_8_289_0-100_cot"
+title = "1hole_(50, 50)_10_441_0-100"
 model_name = "gpt2"
-device = torch.device("cuda:2")
+device = torch.device("cuda:0")
 print(f"running {task} - {title}...")
 
 save_model_path = f"save_model_{model_name}"
@@ -43,8 +43,6 @@ print("done")
 # model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf",torch_dtype=torch.bfloat16, device_map="auto")
 if task == "mod_addition" and "cot" in title:
     l = 100
-elif task == "addition_code":
-    l = 800
 else:
     l = 50
 print(f"setting max length to {l}")
@@ -143,15 +141,5 @@ for epoch in range(num_epoch):
         if step % log_step == 0:
             tqdm.write('epoch {}, step {}, loss {}, lr: {}'.format(epoch, progress_bar.n, loss.item(), lr_scheduler.get_last_lr()[0]))
         step += 1
-    # save_checkpoint
-    # torch.save(model.state_dict(), 'model_epoch_{}.pt'.format(epoch))
-    # if epoch % save_epoch == 0:
-    #     if cot:
-    #         GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title + "_cot", f"model_{epoch}"))
-    #     else:
-    #         GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title, f"model_{epoch}"))
 
-if cot:
-    GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title + "_cot", f"model_{epoch}"))
-else:
-    GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title, f"model_{epoch}"))
+GPT2LMHeadModel.save_pretrained(model, os.path.join(save_model_path, task, title, f"model_{epoch}"))
