@@ -10,7 +10,6 @@ import time
 import re
 
 
-
 task = "addition"
 title = "1hole_(50, 50)_10_441_0-100"
 model_name = "gpt2"
@@ -36,11 +35,10 @@ writer = SummaryWriter(log_dir='log/{}_{}_{}_{}'.format(model_name, task, title,
 
 # load pretrain model
 print(f"loading pretrained model: {model_name}...")
-
 model = GPT2LMHeadModel.from_pretrained(f"pretrained_models/{model_name}")
 tokenizer = GPT2Tokenizer.from_pretrained(f"pretrained_models/{model_name}")
 print("done")
-# model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf",torch_dtype=torch.bfloat16, device_map="auto")
+
 if task == "mod_addition" and "cot" in title:
     l = 100
 else:
@@ -49,10 +47,6 @@ print(f"setting max length to {l}")
 train_dataset = GPT2Dataset(file_path='datasets/{}/{}/train.json'.format(task,title), max_length=l)
 valid_dataset = TestDataset(file_path='datasets/{}/{}/test.json'.format(task,title))
 test_dataset = TestDataset(file_path='datasets/{}/{}/test.json'.format(task,title))
-
-# train_dataset = GPT2Dataset(file_path='datasets/mod_add/train.json', max_length=50)
-# valid_dataset = TestDataset(file_path='datasets/mod_add/test.json')
-# test_dataset = TestDataset(file_path='datasets/mod_add/test.json')
 
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batchsize, shuffle=True)
 
@@ -91,9 +85,6 @@ def valid_and_test(model, valid_dataset, test_dataset, device, step):
             valid_answer = extract_answer(str(valid_answer))
             outputs = model.generate(valid_question.to(device), max_length=l, num_beams=1, do_sample=False, pad_token_id=50257) # no padding, greedy decoding
             generated_answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
-            # tqdm.write('-'*40)
-            # tqdm.write(generated_answer)
-            # tqdm.write('### The groundtruth is {}'.format(valid_answer))
             if ctr % 500 == 0:
                 tqdm.write('-'*40)
                 tqdm.write(generated_answer)
@@ -117,14 +108,6 @@ for epoch in range(num_epoch):
     for batch in train_dataloader:
         batch = batch[0] # the labels is not used, because the labels is the same as the input_ids
         labels = batch
-        # labels = torch.concatenate((batch[:, 1:], 50256*torch.ones(batch.shape[0], 1)), dim=1).long().to(device)
-        # labels = batch[1:]
-        # add the eot before the first padding token
-        # for i in range(batch.shape[0]):
-        #     for j in range(batch.shape[1]):
-        #         if batch[i, j] == tokenizer.pad_token_id:
-        #             batch[i, j] = tokenizer.eos_token_id
-        #             break
         outputs = model(batch.to(device), labels=labels.to(device))
         loss = outputs.loss
         loss.backward()
