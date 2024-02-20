@@ -17,9 +17,10 @@ device = torch.device("cuda:0")
 print(f"running {task} - {title}...")
 
 save_model_path = f"save_model_{model_name}"
+
+# hyperparameters here
 log_step = 200
 num_epoch = 100
-save_epoch = num_epoch / 5
 batchsize = 30
 lr = 1e-4
 weight_decay= 0
