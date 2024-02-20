@@ -52,15 +52,11 @@ test_dataset = TestDataset(file_path='datasets/{}/{}/test.json'.format(task,titl
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batchsize, shuffle=True)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-# optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 num_training_steps = num_epoch * len(train_dataloader)
 num_warmup_steps = 0.01 * num_training_steps
 lr_scheduler = transformers.get_cosine_schedule_with_warmup(optimizer=optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
 
 progress_bar = tqdm(range(num_training_steps))
-
-# def extract_answer(s: str):
-#     return re.findall(r'[0-9]+\.?[0-9]*', s)
 
 def extract_answer(s: str, mode=task):
     if mode in ["addition", "mod_addition", "base_addition", "linear_regression"]:
