@@ -2,6 +2,8 @@
 
 We explore whether LLMs perform case-based or rule-based reasoning in this work.
 
+:star: Official code for [Case-Based or Rule-Based: How Do Transformers Do the Math?](https://arxiv.org/abs/2402.17709).
+
 ## requirements
 Tested combination of python packages that can successfully complete the program is listed in [requirements.txt](/requirements.txt). You can run the following script to install them.
 
