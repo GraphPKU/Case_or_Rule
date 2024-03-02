@@ -25,7 +25,7 @@ We adopt the FastChat Framework to finetune Llama-7B in `./llama`.
 
 ## Citation
 If you want to use the code for your research, please cite our paper:
-```
+```bibtex
 @misc{hu2024casebased,
       title={Case-Based or Rule-Based: How Do Transformers Do the Math?},
       author={Yi Hu and Xiaojuan Tang and Haotong Yang and Muhan Zhang},
